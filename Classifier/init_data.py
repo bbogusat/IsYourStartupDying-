@@ -1,6 +1,6 @@
 import csv
 import datetime
-import mysql.connector
+import MySQLdb
 from Company import Company
 
 #   TODO:
@@ -10,6 +10,7 @@ from Company import Company
 #   Find a way to use NoneTypes in the distance calculation. Ie). None Funding
 #   should be 0. Everything but founding date, should be 0.
 #   Use Key verification to login to DB User instead of password
+#   State reasoning behind the magic NUMBERS
 ##
 #   Quality Of Life
 ##
@@ -23,7 +24,7 @@ from Company import Company
 
 
 # MAGIC NUMBERS MHMM... (~^-^)~
-MONEYTHRESHOLD = 800000
+
 # Last time the DB was updated
 LAST_REFRESH = datetime.date(2014,10,1)
 # Based on 2.4 million a year
@@ -50,8 +51,8 @@ def parseData(dbName):
     entry_num = 0
 
     try:
-        db = mysql.connector.connect(user='', password='', database=dbName)
-        cursor = db.cursor(dictionary = True)
+        db = MySQLdb.connect(user='', passwd='', db=dbName)
+        cursor = db.cursor(MySQLdb.cursors.DictCursor)
     except Exception as e:
         print("Unable to connect to Database {}:\n {}".format(dbName,e))
         raise SystemExit()
@@ -113,11 +114,6 @@ def parseData(dbName):
     #
     for current_map in maps:
         for key in current_map:
-            try:
-                if((current_map[key][0] - current_map[key][1]) < -2):
-                    print("Fails for {0} : {1}".format(key,current_map[key][0] - current_map[key][1]))
-            except Exception as e:
-                pass
             key_total = current_map[key][0] + current_map[key][1]
             if (key_total < 5 or current_map[key][0] > 0):
 
