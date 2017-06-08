@@ -4,17 +4,48 @@ import os.path
 import init_data as init
 import cPickle
 import argparse
-from math import sqrt
 from operator import itemgetter
 from Company import Company
 
+################################################################################
+FIVE_YEARS = 365*5
+################################################################################
 
-## list of integers:points1, points2
-## Returns integer distance
-# TODO : abs(X-Y) / X+Y
-# UNLESS X+Y = 0.
-# Gives you the difference in % of the total of both
-DATE_SCALE = 365*5
+################################################################################
+# USE CASE: python classify_startup.py -n Generic -s operating -m 'Real Estate' -co USA -ci 'San Francisco' -fo 2012-01-01 -r 0 -fr 1 -ft 200000 -ff 2012-07-07 -lf 2012-07-07
+################################################################################
+#   TODO:
+#   !Priority!
+##
+#   1. Change the sorting method of neighbours to be more efficient. (Data is
+#      basically sorted)
+#   2. Find a way to use NoneTypes in the distance calculation.
+#      Ie). None Funding should be 0
+#   3. Scale the influence of neighbours found by distance. All neighbours put
+#      into the k_neighbours shouldn't be weighted the same in success calc
+#   4. Rework so pickles aren't opened for every test. Also pickles shouldn't
+#      need to be opened on initialization
+#   4. Use Key verification to login to DB User instead of password
+##
+#
+#   Quality Of Life
+##
+#   1. Get reasoning behind magic NUMBERS
+#   2. Clean the DB so assumptions can be made
+#   3. Look into using defualtdict to get rid of  dict initalization try/catch
+#   4. Consolidate the For-loops in weight calc as they are the same logic
+#   5. Rework checking for None dates, and defaulting. Feels like too many if's
+##
+#
+#
+
+################################################################################
+# Calculates the distance between numerical points given.
+# Will scale the distance to be a max of 1 for each point
+#
+# Returns - sum (The distance between the two companies)
+#
+################################################################################
 def get_n_distance(points1, points2):
     sum = 0.0
     for index in range(len(points1)):
@@ -24,8 +55,8 @@ def get_n_distance(points1, points2):
 
             if isinstance(points1[index], datetime.date):
                 scale = 1
-                if diff.days < DATE_SCALE:
-                    scale = float(diff.days/DATE_SCALE)
+                if diff.days < FIVE_YEARS:
+                    scale = float(diff.days/FIVE_YEARS)
                 sum += scale
             else:
                 try:
@@ -40,8 +71,13 @@ def get_n_distance(points1, points2):
 
     return sum
 
-## Company:company List:data Dict:country_weights, market_weights
-## Returns: list of neighbors
+################################################################################
+# Gathers the k closest neighbours around the company. Will calculate the
+# distance between two points and scale up or down depending on the relations
+#
+# Returns - k_neighbours (List of k companies that are closest)
+#
+################################################################################
 def get_k_neighbors(company, k, data, country_weights, city_weights, market_weights):
     k_neighbours = []
     for ref_company in data:
@@ -68,8 +104,15 @@ def get_k_neighbors(company, k, data, country_weights, city_weights, market_weig
 
     return k_neighbours
 
-## list:neighbors
-## Returns: 1 == Successful, 0 == Failure, -1 == Uncertain
+################################################################################
+# Takes the neighbours and determines the success rate. If the rate is within
+# the accepted range of sureness then classify.
+#
+# Returns - 1 (Successful)
+#           0 (Unsuccessful)
+#           -1 (Uncertain)
+#
+################################################################################
 def success_rate(neighbors):
     num_successful = 0
     num_failures = 0
@@ -92,8 +135,13 @@ def success_rate(neighbors):
     # Return unsure doesn't fall into the acceptable results range
     return -1
 
-## -
-## Returns: all dictionaries for classification and verification.
+################################################################################
+# Initializes the data set (Determines successes and failures) and creates
+# pickles for next time.
+#
+# Returns - 1 (Initialization was successful)
+#
+################################################################################
 def initialize():
     print "Initializing Data.."
     ref_data, test_data, country_weights, city_weights, market_weights = [], [], {}, {}, {}
@@ -122,8 +170,13 @@ def initialize():
 
     return 1
 
-## -
-## Returns: True == initialized data, False == uninitialized data
+################################################################################
+# Checks to see if the data has been initialized. (If there are pickles)
+#
+# Returns - True (Initialized)
+#         - False (Not Initialized)
+#
+################################################################################
 def is_initialized():
     names = ('ref_data', 'test_data', 'country_weights', 'city_weights', 'market_weights')
     for name in names:
@@ -131,8 +184,12 @@ def is_initialized():
           return False
     return True
 
-## k: integer
-## Returns: console print out of test results on k neighbors.
+################################################################################
+# Partitions the data set and tests against itself.
+#
+# Prints
+#
+################################################################################
 def test(k=9):
     print "Starting Test.."
     initialize()
@@ -141,22 +198,19 @@ def test(k=9):
 
     correct = 0
     wrong = 0
-    total_tested = 0
-    # PRINTING PARAMS for prettiness
-    to = 100
-    digits = len(str(to - 1))
-    delete = "\b" * (digits + 1 + len("Correct: {3}  Wrong: {4}"))
 
     for company in test_data:
         if classify(company, k) == company.successful:
             correct += 1
         else:
+            print(company.name,company.status,company.market,company.country,\
+                 company.city,company.founded,company.relationships, company.invest_rounds,\
+                 company.first_invest,company.last_invest,company.funding_rounds,\
+                 company.funding_total,company.first_funding,company.last_funding,
+                 company.successful)
             wrong += 1
 
-        total_tested += 1
         print "Accuracy: {0}%  Correct: {1}  Wrong: {2}".format(float(correct)/float(wrong+correct) * 100, correct,wrong)
-        #sys.stdout.write("{0}Correct: {1}  Wrong: {2}".format(delete, correct, wrong))
-        #sys.stdout.flush()
 
     print "Tested {0} entries with k={2}:".format(total_to_test, k)
     if (wrong > 0):
@@ -164,26 +218,42 @@ def test(k=9):
     else:
         print "\n100% accuracy for {0} neighbors.".format(k)
 
-# Classifies your startup
-# Returns: 1==Successful 0==Failure -1==Uncertain -2==Error
+################################################################################
+# Classifies your startup based on the k closest neighbours
+#
+# Returns - 1 (Successful)
+#           0 (Failure)
+#           -1 (Uncertain)
+#
+################################################################################
 def classify(company, k = 9):
-    #Check that the Data is initialized
-    #TODO: CHANGE THIS SO INPUT MATCHES ACTUAL COMPANY FORMAT
-
+    if company.status in ('ipo', 'acquired'):
+        return 1
+    if company.status == 'closed':
+        return 0
     ref_data, country_weights, city_weights, market_weights = grab_files()
 
     print("Crunching numbers. . .")
     comparable_companies = get_k_neighbors(company,k,ref_data,country_weights,\
     city_weights,market_weights)
-    for data in comparable_companies:
-        company = data[1]
-        print(company.name,company.status,company.market,company.country,\
-        company.city,company.founded,company.relationships, company.invest_rounds,\
-        company.first_invest,company.last_invest,company.funding_rounds,\
-        company.funding_total,company.first_funding,company.last_funding,
-        company.successful)
+    # for data in comparable_companies:
+    #     company = data[1]
+    #     print(company.name,company.status,company.market,company.country,\
+    #     company.city,company.founded,company.relationships, company.invest_rounds,\
+    #     company.first_invest,company.last_invest,company.funding_rounds,\
+    #     company.funding_total,company.first_funding,company.last_funding,
+    #     company.successful)
     return success_rate(comparable_companies)
 
+################################################################################
+# Grabs the data needed from the pickled files
+#
+# Returns - ref_data (Iterator)
+#         - country_weights (Hashmap)
+#         - city_weights
+#         - market_weights
+#
+################################################################################
 def grab_files():
     print("Opening pickles. . .")
 
@@ -197,7 +267,12 @@ def grab_files():
         market_weights = cPickle.load(f)
     return ref_data, country_weights, city_weights, market_weights
 
-# Generator to iter through pickle
+################################################################################
+# Generator for a pickled file.
+#
+# Returns - A company object
+#
+################################################################################
 def load_in(f_name):
     with open(f_name, "rb") as f:
         while True:
@@ -205,7 +280,10 @@ def load_in(f_name):
                 yield cPickle.load(f)
             except EOFError:
                 break
-## MAIN
+
+################################################################################
+# MAIN
+################################################################################
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-test', action="store_true")
@@ -249,16 +327,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# if (len(sys.argv) == 2):
-#     if sys.argv[1] == 'test':
-#         test()
-# elif (len(sys.argv) == 3):
-#     if sys.argv[1] == 'test':
-#         test(k=int(sys.argv[2]))
-# elif (len(sys.argv) == 10):
-#     print(classify(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]))
-# elif (len(sys.argv) == 11):
-#     print(classify(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9], k=int(sys.argv[10])))
-# else:
-#    print("ERROR: invalid argument(s).")

@@ -2,27 +2,8 @@ import datetime
 import MySQLdb
 from Company import Company
 
-#   TODO:
-#   !Priority!
-##
-#
-#   Find a way to use NoneTypes in the distance calculation. Ie). None Funding
-#   should be 0. Everything but founding date, should be 0.
-#   Use Key verification to login to DB User instead of password
-#   State reasoning behind the magic NUMBERS
-##
-#   Quality Of Life
-##
-#   Clean the data so assumptions can be made.
-#   Look into using defualtdict to get rid of the dict initalization try/catch
-#   Consolidate the For-loops in weight calc as they are the same logic
-#   Rework checking for None dates, and defaulting. Feels like too many if's
-##
-#
-#
-
 # MAGIC NUMBERS MHMM... (~^-^)~
-
+################################################################################
 # Last time the DB was updated
 #
 LAST_REFRESH = datetime.date(2014,10,1)
@@ -51,7 +32,10 @@ INFLOW_RATING_PER_DAY = float(0.5/365.0)
 # Two and a half years in days rounded down
 #
 TWO_HALF_YEARS = 912
+################################################################################
 
+
+################################################################################
 # Calculates the success rates and individual success of all companies in the
 # dataset
 #
@@ -61,6 +45,7 @@ TWO_HALF_YEARS = 912
 #           city_map
 #           market_map
 #
+################################################################################
 def parseData(dbName):
     ref_data = []
     test_data = []
@@ -155,13 +140,13 @@ def parseData(dbName):
 
     return ref_data, test_data, country_map, city_map, market_map
 
-
+################################################################################
 # Determines a companies success bases on its data points.
 # A rating >= 1 is considered successful
 #
 # Returns - bool: True (Successful), False (Unsuccessful)
 #
-#
+################################################################################
 def _is_successful(current_company):
     rating = 0
 
@@ -234,6 +219,7 @@ def _is_successful(current_company):
 
     return bool(rating >= 1)
 
+################################################################################
 # Updates the influence rating of each non numerical data point.
 # More than a counter to give scale
 #
@@ -241,6 +227,7 @@ def _is_successful(current_company):
 #         - city_map
 #         - market_map
 #
+################################################################################
 def _update_maps(country_map, city_map, market_map, current_company):
     if current_company.successful:
         # Company is deemed successful
