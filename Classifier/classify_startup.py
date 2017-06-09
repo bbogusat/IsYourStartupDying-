@@ -8,11 +8,11 @@ from operator import itemgetter
 from Company import Company
 
 ################################################################################
-FIVE_YEARS = 365*5
+FIVE_YEARS = 365 * 5
 ################################################################################
 
 ################################################################################
-# USE CASE: python classify_startup.py -n Generic -s operating -m 'Real Estate' -co USA -ci 'San Francisco' -fo 2012-01-01 -r 0 -fr 1 -ft 200000 -ff 2012-07-07 -lf 2012-07-07
+# USE: python classify_startup.py -n Generic -s operating -m 'Real Estate' -co USA -ci 'San Francisco' -fo 2012-01-01 -r 0 -fr 1 -ft 200000 -ff 2012-07-07 -lf 2012-07-07
 ################################################################################
 #   TODO:
 #   !Priority!
@@ -46,6 +46,7 @@ FIVE_YEARS = 365*5
 # Returns - sum (The distance between the two companies)
 #
 ################################################################################
+#
 def get_n_distance(points1, points2):
     sum = 0.0
     for index in range(len(points1)):
@@ -56,18 +57,17 @@ def get_n_distance(points1, points2):
             if isinstance(points1[index], datetime.date):
                 scale = 1
                 if diff.days < FIVE_YEARS:
-                    scale = float(diff.days/FIVE_YEARS)
+                    scale = float(diff.days / FIVE_YEARS)
                 sum += scale
             else:
                 try:
-                    sum += float(diff/(points1[index] + points2[index]))
+                    sum += float(diff / (points1[index] + points2[index]))
                 except ZeroDivisionError:
                     pass
         else:
             sum += diff
 
         # Both X and Y should be positive. Only 0 would be X = 0 and Y = 0
-
 
     return sum
 
@@ -78,13 +78,14 @@ def get_n_distance(points1, points2):
 # Returns - k_neighbours (List of k companies that are closest)
 #
 ################################################################################
+#
 def get_k_neighbors(company, k, data, country_weights, city_weights, market_weights):
     k_neighbours = []
     for ref_company in data:
 
         # Gets the distance based on anything numerical
-        distance = get_n_distance(company.get_numerical_points(), \
-        ref_company.get_numerical_points())
+        distance = get_n_distance(company.get_numerical_points(),
+                                  ref_company.get_numerical_points())
 
         if(company.country == ref_company.country):
             distance *= country_weights[ref_company.country]
@@ -96,11 +97,11 @@ def get_k_neighbors(company, k, data, country_weights, city_weights, market_weig
             distance *= market_weights[ref_company.market]
 
         if len(k_neighbours) >= k:
-            if (distance < k_neighbours[k-1][0]):
-                k_neighbours[k-1] = (distance,ref_company)
+            if (distance < k_neighbours[k - 1][0]):
+                k_neighbours[k - 1] = (distance, ref_company)
                 k_neighbours.sort(key=itemgetter(0))
         else:
-            k_neighbours.append((distance,ref_company))
+            k_neighbours.append((distance, ref_company))
 
     return k_neighbours
 
@@ -113,6 +114,7 @@ def get_k_neighbors(company, k, data, country_weights, city_weights, market_weig
 #           -1 (Uncertain)
 #
 ################################################################################
+#
 def success_rate(neighbors):
     num_successful = 0
     num_failures = 0
@@ -121,9 +123,11 @@ def success_rate(neighbors):
             num_successful += 1
         else:
             num_failures += 1
+
     diff = num_successful - num_failures
+
     # Has to have a diff
-    sureness = float(num_successful/len(neighbors))
+    sureness = float(num_successful) / float(len(neighbors))
 
     # At least 65% of results one way
     if sureness < 0.35 or sureness > 0.65:
@@ -142,16 +146,18 @@ def success_rate(neighbors):
 # Returns - 1 (Initialization was successful)
 #
 ################################################################################
+#
 def initialize():
     print "Initializing Data.."
     ref_data, test_data, country_weights, city_weights, market_weights = [], [], {}, {}, {}
-    ref_data, test_data, country_weights, city_weights, market_weights = init.parseData('analytics_2')
+    ref_data, test_data, country_weights, city_weights, market_weights = init.parseData(
+        'analytics_2')
 
     data_structs = (country_weights, city_weights, market_weights)
-    iter_data = (ref_data,test_data)
+    iter_data = (ref_data, test_data)
 
     names = ('country_weights', 'city_weights', 'market_weights')
-    iter_names = ('ref_data','test_data')
+    iter_names = ('ref_data', 'test_data')
 
     print "Pickling Data.."
     if not os.path.exists('.pickle/'):
@@ -166,7 +172,7 @@ def initialize():
     for i in range(len(iter_names)):
         with open('.pickle/.{0}.pickle'.format(iter_names[i]), 'wb') as f:
             for data in iter_data[i]:
-                cPickle.dump(data,f,protocol=cPickle.HIGHEST_PROTOCOL)
+                cPickle.dump(data, f, protocol=cPickle.HIGHEST_PROTOCOL)
 
     return 1
 
@@ -177,11 +183,13 @@ def initialize():
 #         - False (Not Initialized)
 #
 ################################################################################
+#
 def is_initialized():
-    names = ('ref_data', 'test_data', 'country_weights', 'city_weights', 'market_weights')
+    names = ('ref_data', 'test_data', 'country_weights',
+             'city_weights', 'market_weights')
     for name in names:
-      if not os.path.exists(".pickle/.{0}.pickle".format(name)):
-          return False
+        if not os.path.exists(".pickle/.{0}.pickle".format(name)):
+            return False
     return True
 
 ################################################################################
@@ -190,6 +198,7 @@ def is_initialized():
 # Prints
 #
 ################################################################################
+#
 def test(k=9):
     print "Starting Test.."
     initialize()
@@ -203,18 +212,18 @@ def test(k=9):
         if classify(company, k) == company.successful:
             correct += 1
         else:
-            print(company.name,company.status,company.market,company.country,\
-                 company.city,company.founded,company.relationships, company.invest_rounds,\
-                 company.first_invest,company.last_invest,company.funding_rounds,\
-                 company.funding_total,company.first_funding,company.last_funding,
-                 company.successful)
+            print(company.name, company.status, company.market, company.country,
+                  company.city, company.founded, company.relationships, company.invest_rounds,
+                  company.first_invest, company.last_invest, company.funding_rounds,
+                  company.funding_total, company.first_funding, company.last_funding,
+                  company.successful)
             wrong += 1
 
-        print "Accuracy: {0}%  Correct: {1}  Wrong: {2}".format(float(correct)/float(wrong+correct) * 100, correct,wrong)
+        print "Accuracy: {0}%  Correct: {1}  Wrong: {2}".format(float(correct) / float(wrong + correct) * 100, correct, wrong)
 
     print "Tested {0} entries with k={2}:".format(total_to_test, k)
     if (wrong > 0):
-        print "\n{0}% accuracy for {1} neighbors.".format(float(correct)/float(total_to_test) * 100, k)
+        print "\n{0}% accuracy for {1} neighbors.".format(float(correct) / float(total_to_test) * 100, k)
     else:
         print "\n100% accuracy for {0} neighbors.".format(k)
 
@@ -226,7 +235,8 @@ def test(k=9):
 #           -1 (Uncertain)
 #
 ################################################################################
-def classify(company, k = 9):
+#
+def classify(company, k=9):
     if company.status in ('ipo', 'acquired'):
         return 1
     if company.status == 'closed':
@@ -234,8 +244,8 @@ def classify(company, k = 9):
     ref_data, country_weights, city_weights, market_weights = grab_files()
 
     print("Crunching numbers. . .")
-    comparable_companies = get_k_neighbors(company,k,ref_data,country_weights,\
-    city_weights,market_weights)
+    comparable_companies = get_k_neighbors(company, k, ref_data, country_weights,
+                                           city_weights, market_weights)
     # for data in comparable_companies:
     #     company = data[1]
     #     print(company.name,company.status,company.market,company.country,\
@@ -254,6 +264,7 @@ def classify(company, k = 9):
 #         - market_weights
 #
 ################################################################################
+#
 def grab_files():
     print("Opening pickles. . .")
 
@@ -272,7 +283,8 @@ def grab_files():
 #
 # Returns - A company object
 #
-################################################################################
+#################################################################################
+#
 def load_in(f_name):
     with open(f_name, "rb") as f:
         while True:
@@ -284,6 +296,7 @@ def load_in(f_name):
 ################################################################################
 # MAIN
 ################################################################################
+#
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-test', action="store_true")
@@ -311,19 +324,22 @@ def main():
         if (not is_initialized()) or args.clean:
             initialize()
 
-        date_inputs = [args.fi,args.li,args.ff,args.lf,args.fo]
+        date_inputs = [args.fi, args.li, args.ff, args.lf, args.fo]
         i = 0
-        while i <  len(date_inputs):
+        while i < len(date_inputs):
             if date_inputs[i]:
-                date_inputs[i] = datetime.date(int(date_inputs[i][:4]), \
-                int(date_inputs[i][5:7]), int(date_inputs[i][8:10]))
+                date_inputs[i] = datetime.date(int(date_inputs[i][:4]),
+                                               int(date_inputs[i][5:7]),
+                                               int(date_inputs[i][8:10]))
             i += 1
 
-        company = Company(args.n,args.s,args.m,args.co,args.ci, date_inputs[4], \
-        args.r, args.ir, date_inputs[0], date_inputs[1], \
-        args.fr, args.ft, date_inputs[2], date_inputs[3])
+        company = Company(args.n, args.s, args.m, args.co, args.ci,
+                          date_inputs[4], args.r, args.ir, date_inputs[0],
+                          date_inputs[1], args.fr, args.ft, date_inputs[2],
+                          date_inputs[3])
 
-        print(classify(company,args.k))
+        print(classify(company, args.k))
+
 
 if __name__ == '__main__':
     main()

@@ -6,19 +6,19 @@ from Company import Company
 ################################################################################
 # Last time the DB was updated
 #
-LAST_REFRESH = datetime.date(2014,10,1)
+LAST_REFRESH = datetime.date(2014, 10, 1)
 
 # Based on 2.4 million a year
 #
-AVG_DAILY_BURN = float(2400000/365.0)
+AVG_DAILY_BURN = float(2400000 / 365.0)
 
 # Start ups that last more than 2.5 years are successful
 #
-OPERATION_RATING_PER_DAY = float(0.4/365.0)
+OPERATION_RATING_PER_DAY = float(0.4 / 365.0)
 
 # Start ups that have more than 2 years of runway are successful
 #
-RUNWAY_RATING_PER_DAY = float(0.5/365.0)
+RUNWAY_RATING_PER_DAY = float(0.5 / 365.0)
 
 # Gain some points for relationships with key people
 #
@@ -27,7 +27,7 @@ RELATIONSHIP_RATING = 0.2
 # Companies that aren't auto successes and have no entered funding value
 # are evaluated by last inflow, 1 - (inflow * rating)
 #
-INFLOW_RATING_PER_DAY = float(0.5/365.0)
+INFLOW_RATING_PER_DAY = float(0.5 / 365.0)
 
 # Two and a half years in days rounded down
 #
@@ -46,13 +46,14 @@ TWO_HALF_YEARS = 912
 #           market_map
 #
 ################################################################################
+#
 def parseData(dbName):
     ref_data = []
     test_data = []
     country_map = {}
     city_map = {}
     market_map = {}
-    maps = (country_map,city_map,market_map)
+    maps = (country_map, city_map, market_map)
 
     entry_num = 0
 
@@ -60,21 +61,21 @@ def parseData(dbName):
         db = MySQLdb.connect(user='', passwd='', db=dbName)
         cursor = db.cursor(MySQLdb.cursors.DictCursor)
     except Exception as e:
-        print("Unable to connect to Database {}:\n {}".format(dbName,e))
+        print("Unable to connect to Database {}:\n {}".format(dbName, e))
         raise SystemExit()
 
     query = ("SELECT normalized_name, category_code, status, "
-    "country_code, state_code, city, region, invested_companies, "
-    "first_investment_at, last_investment_at, investment_rounds, "
-    "first_funding_at, last_funding_at, funding_rounds, "
-    "funding_total_usd, founded_at, relationships FROM object_analysis "
-    "WHERE entity_type NOT IN ('Product', 'People')")
+             "country_code, state_code, city, region, invested_companies, "
+             "first_investment_at, last_investment_at, investment_rounds, "
+             "first_funding_at, last_funding_at, funding_rounds, "
+             "funding_total_usd, founded_at, relationships FROM object_analysis "
+             "WHERE entity_type NOT IN ('Product', 'People')")
 
     cursor.execute(query)
 
     for result in cursor:
 
-        #Grab points for ease.
+        # Grab points for ease.
 
         # WIP data points:
         #state_code = result['state_code']
@@ -100,9 +101,10 @@ def parseData(dbName):
 
         # Create company object
         #
-        current_company = Company(name, status, market, country, city, founded,\
-        relationships, invest_rounds, first_invest, last_invest,\
-        funding_rounds, funding_total, first_funding, last_funding)
+        current_company = Company(name, status, market, country, city, founded,
+                                  relationships, invest_rounds, first_invest,
+                                  last_invest, funding_rounds, funding_total,
+                                  first_funding, last_funding)
 
         # Check if the company is successful
         #
@@ -111,14 +113,15 @@ def parseData(dbName):
         # Updates the maps and starts paritioning some test data
         #
         if entry_num % 500 != 0:
-            country_map, city_map, market_map = _update_maps(country_map, \
-            city_map, market_map, current_company)
+            country_map, city_map, market_map = _update_maps(country_map,
+                                                             city_map,
+                                                             market_map,
+                                                             current_company)
 
             ref_data.append(current_company)
         else:
             test_data.append(current_company)
         entry_num += 1
-
 
     cursor.close()
     db.close()
@@ -133,7 +136,7 @@ def parseData(dbName):
             if (key_total < 5 or current_map[key][0] > 0):
 
                 current_map[key] = \
-                float(current_map[key][1])/float(key_total)
+                    float(current_map[key][1]) / float(key_total)
                 current_map[key] = abs(current_map[key] - 0.5)
             else:
                 current_map[key] = 0.5
@@ -147,6 +150,7 @@ def parseData(dbName):
 # Returns - bool: True (Successful), False (Unsuccessful)
 #
 ################################################################################
+#
 def _is_successful(current_company):
     rating = 0
 
@@ -156,8 +160,8 @@ def _is_successful(current_company):
     #
     if current_company.status in ('ipo', 'acquired'):
         rating = 1
-    elif ((current_company.first_funding or current_company.first_invest or \
-    current_company.founded) and (current_company.status != 'closed')):
+    elif ((current_company.first_funding or current_company.first_invest or
+           current_company.founded) and (current_company.status != 'closed')):
 
         valid_dates = []
         runway = 0
@@ -181,7 +185,7 @@ def _is_successful(current_company):
         #
         if(current_company.funding_total):
             days_funded = \
-            float(current_company.funding_total)/AVG_DAILY_BURN
+                float(current_company.funding_total) / AVG_DAILY_BURN
 
             runway = days_operating - days_funded
 
@@ -190,7 +194,7 @@ def _is_successful(current_company):
         # we don't know the value)
         #
         elif (days_operating < TWO_HALF_YEARS) and \
-        (current_company.last_funding or current_company.last_invest):
+                (current_company.last_funding or current_company.last_invest):
 
             # Cases where funding is before founding date
             # Curtousy of ditry data
@@ -206,11 +210,12 @@ def _is_successful(current_company):
             #
             days_since_inflow = (LAST_REFRESH - last_inflow_at).days
 
-            flow_rating = (1 - (days_since_inflow * INFLOW_RATING_PER_DAY) )
+            flow_rating = (1 - (days_since_inflow * INFLOW_RATING_PER_DAY))
             if flow_rating > 0:
                 rating += flow_rating
 
-        # Factors in relationships
+        # Relationship factor
+        #
         if current_company.relationships:
             rating += current_company.relationships * RELATIONSHIP_RATING
 
@@ -228,37 +233,38 @@ def _is_successful(current_company):
 #         - market_map
 #
 ################################################################################
+#
 def _update_maps(country_map, city_map, market_map, current_company):
     if current_company.successful:
         # Company is deemed successful
         try:
             country_map[current_company.country][0] += 1
         except KeyError:
-            country_map[current_company.country] = [1,0]
+            country_map[current_company.country] = [1, 0]
 
         try:
             market_map[current_company.market][0] += 1
         except KeyError:
-            market_map[current_company.market] = [1,0]
+            market_map[current_company.market] = [1, 0]
 
         try:
             city_map[current_company.city][0] += 1
         except KeyError:
-            city_map[current_company.city] = [1,0]
+            city_map[current_company.city] = [1, 0]
     else:
         try:
             country_map[current_company.country][1] += 1
         except KeyError:
-            country_map[current_company.country] = [0,1]
+            country_map[current_company.country] = [0, 1]
 
         try:
             market_map[current_company.market][1] += 1
         except KeyError:
-            market_map[current_company.market] = [0,1]
+            market_map[current_company.market] = [0, 1]
 
         try:
             city_map[current_company.city][1] += 1
         except KeyError:
-            city_map[current_company.city] = [0,1]
+            city_map[current_company.city] = [0, 1]
 
-    return country_map, city_map, market_map;
+    return country_map, city_map, market_map
