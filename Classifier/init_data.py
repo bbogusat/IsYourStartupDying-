@@ -1,5 +1,6 @@
 import datetime
 import MySQLdb
+import ConfigParser
 from Company import Company
 
 # MAGIC NUMBERS MHMM... (~^-^)~
@@ -48,6 +49,11 @@ TWO_HALF_YEARS = 912
 ################################################################################
 #
 def parseData(dbName):
+    config = ConfigParser.RawConfigParser()
+    config.read('../private/.crunchdb.ini')
+    db_user = config.get('mysql_creds', 'user')
+    db_pass = config.get('mysql_creds', 'passwd')
+
     ref_data = []
     test_data = []
     country_map = {}
@@ -58,7 +64,7 @@ def parseData(dbName):
     entry_num = 0
 
     try:
-        db = MySQLdb.connect(user='', passwd='', db=dbName)
+        db = MySQLdb.connect(user=db_user, passwd=db_pass, db=dbName)
         cursor = db.cursor(MySQLdb.cursors.DictCursor)
     except Exception as e:
         print("Unable to connect to Database {}:\n {}".format(dbName, e))
